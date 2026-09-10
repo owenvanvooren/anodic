@@ -1,6 +1,4 @@
-# Anodic
-
-<img src="src/main/resources/assets/anodic/icon.png" alt="Anodic icon" width="128" height="128">
+# <img src="src/main/resources/assets/anodic/icon.png" alt="" width="40" height="40" align="absmiddle"> Anodic
 
 Native Metal antialiasing for Minecraft on Apple Silicon.
 
