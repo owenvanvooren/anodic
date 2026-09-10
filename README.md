@@ -1,5 +1,7 @@
 # Anodic
 
+<img src="src/main/resources/assets/anodic/icon.png" alt="Anodic icon" width="128" height="128">
+
 Native Metal antialiasing for Minecraft on Apple Silicon.
 
 - **Quality:** temporal AA with subpixel camera jitter, depth reprojection, and history clipping. Keeps the hand and HUD sharp. Default for new installs.
