@@ -64,14 +64,15 @@ let data=try JSONSerialization.data(withJSONObject:report,options:[.prettyPrinte
 // Fixed camera: changing sample positions must not make stationary edges crawl.
 // Include clear-depth sky and a foreground/background depth boundary.
 var stationaryResults:[[String:Any]]=[]
-for kind in ["surface", "sky", "silhouette"] {
+for kind in ["surface", "sky", "silhouette", "thin-line"] {
  var values=[[Float]]()
  for frame in 0..<128 {
   let jx=halton(frame%8+1,2)-0.5,jy=halton(frame%8+1,3)-0.5
   for y in 0..<h {for x in 0..<w {
-   let v=scene(Float(x)+0.5-jx,Float(y)+0.5-jy)
+   let sx=Float(x)+0.5-jx,sy=Float(y)+0.5-jy
+   let v:Float=kind == "thin-line" ? (abs(sx-70-sy*0.37)<0.35 ? 0.85:0.12):scene(sx,sy)
    for c in 0..<3 {source[(y*w+x)*4+c]=UInt8((v*255).rounded())}
-   depths[y*w+x]=kind == "sky" ? 0 : (kind == "silhouette" && v<0.5 ? 0.1:0.5)
+   depths[y*w+x]=kind == "sky" ? 0 : ((kind == "silhouette" || kind == "thin-line") && v<0.5 ? 0.1:0.5)
   }}
   color.replace(region:MTLRegionMake2D(0,0,w,h),mipmapLevel:0,withBytes:&source,bytesPerRow:w*4)
   depth.replace(region:MTLRegionMake2D(0,0,w,h),mipmapLevel:0,withBytes:&depths,bytesPerRow:w*4)
@@ -83,7 +84,24 @@ for kind in ["surface", "sky", "silhouette"] {
   let sequence=values.map{$0[y*w+x]};maxRange=max(maxRange,sequence.max()!-sequence.min()!)
  }}
  stationaryResults.append(["scene":kind,"maxTemporalRange":maxRange])
- precondition(maxRange<0.025,"Stationary \(kind) flickers across jitter phases: \(maxRange)")
+ print("Stationary \(kind): \(maxRange)")
+ let limit:Float=kind == "thin-line" ? 0.035:0.025
+ precondition(maxRange<limit,"Stationary \(kind) flickers across jitter phases: \(maxRange)")
+ if kind == "thin-line" {
+  // Stability must not be achieved by erasing the line. Check retained signal
+  // against its analytical integrated coverage in the interior rows.
+  var signal:Float=0
+  for y in 4..<h-4 {for x in 4..<w-4 {signal+=values.last![y*w+x]-31.0/255}}
+  let idealSignal:Float=0.7*Float(h-8)*(0.85-0.12)
+  precondition(signal>idealSignal*0.6,"Temporal filtering erased the thin line")
+  print("Thin-line retained signal: \(signal/idealSignal)")
+  // Remove the line without a depth change: neighborhood clipping must still
+  // reject stale history, even with the increased resting history weight.
+  for i in stride(from:0,to:source.count,by:4){source[i]=31;source[i+1]=31;source[i+2]=31}
+  color.replace(region:MTLRegionMake2D(0,0,w,h),mipmapLevel:0,withBytes:&source,bytesPerRow:w*4)
+  let removed=encode(Params(reprojection:matrix_identity_float4x4,jitter:.zero,weight:0.9,valid:1))
+  for i in stride(from:0,to:removed.count,by:4){precondition(abs(Float(Float16(bitPattern:removed[i]))-31.0/255)<0.001,"Removed line left a trail")}
+ }
 }
 let stationaryData=try JSONSerialization.data(withJSONObject:stationaryResults,options:[.prettyPrinted,.sortedKeys])
 try stationaryData.write(to:URL(fileURLWithPath:out+"/stationary-report.json"));print(String(data:stationaryData,encoding:.utf8)!)

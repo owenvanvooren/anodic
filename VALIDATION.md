@@ -19,6 +19,12 @@ A 128-frame fixed-camera regression covers a flat-depth edge, a sky edge, and a 
 
 Temporal AA reduced mean squared error against an 8×8 coverage reference by **24.99%** on a moving diagonal plane after history warm-up. Performance reduced error by **81.51%** on the separate static silhouette test. These are different workloads and do not compare the two modes or measure perceived resolution in Minecraft.
 
+### Thin-line refinement
+
+A 0.7-pixel-wide diagonal line exposed overly tight variance clipping at rest. The resting variance multiplier is now 2.0 (moving remains 1.25), with resting history retention increased from 0.97 to 0.985. This adds no texture reads or render passes. It favors stability at rest and may respond more slowly to subtle animation that stays within the neighborhood color range.
+
+The line's worst-pixel brightness range fell from **0.1204 to 0.0295** (75.5% lower), with 94.5% of its analytical integrated signal retained. A same-depth line-removal check rejects its history in the first frame. The three broader stationary edge cases remain below 0.025; moving-plane accuracy is unchanged. These native checks pass with Metal API Validation. Extremely thin geometry can still shimmer; this does not establish stability for every line orientation or animated material.
+
 Original-release median offscreen GPU times, milliseconds (before the stationary-view correction's wider depth sampling):
 
 | Resolution | Performance added cost over presentation | Quality resolve + copy | Quality history memory |

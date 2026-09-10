@@ -47,7 +47,7 @@ fragment half4 taa_fs(Out in [[stage_in]], texture2d<half> current [[texture(0)]
     // A resting view can retain more history; movement returns to the normal
     // response immediately, while clipping still rejects changing content.
     float stationary=1-clamp(motion/.1,0.0,1.0);
-    float weight=mix(p.historyWeight,.97,stationary);
+    float weight=mix(p.historyWeight,.985,stationary);
     if (p.valid==0 || previous.w<=0 || any(oldUV<px*.5) || any(oldUV>1-px*.5) || (!sky && (expected<0 || expected>1))) return half4(now,half(d));
     half4 old=half4(half3(reconstruct(history,oldUV)),0);
     float oldDepth=float(history.sample(nearestEdge,oldUV).a);
@@ -60,11 +60,15 @@ fragment half4 taa_fs(Out in [[stage_in]], texture2d<half> current [[texture(0)]
         sum+=c;second+=c*c;low=min(low,c);high=max(high,c);
     }
     float3 mean=sum/9, sigma=sqrt(max(second/9-mean*mean,0.0));
-    low=max(low,mean-sigma*1.25);high=min(high,mean+sigma*1.25);
+    // Sparse subpixel lines are outliers in a single jittered neighborhood.
+    // Relax variance bounds at rest, retaining the current neighborhood range
+    // so removed geometry still loses its history instead of lingering.
+    float gamma=mix(1.25,2.0,stationary);
+    low=max(low,mean-sigma*gamma);high=min(high,mean+sigma*gamma);
     float3 clipped=clamp(float3(old.rgb),low,high);
     float difference=length(float3(old.rgb)-clipped);
     weight*=1-clamp(difference*3,0.0,.85);
-    weight=min(weight,mix(.9+.07*stationary,.65,clamp(motion/24,0.0,1.0)));
+    weight=min(weight,mix(.9+.085*stationary,.65,clamp(motion/24,0.0,1.0)));
     return half4(half3(mix(float3(now),clipped,weight)),half(d));
 }
 fragment half4 copy_fs(Out in [[stage_in]],texture2d<half> t [[texture(0)]]) {
