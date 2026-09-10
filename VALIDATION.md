@@ -6,14 +6,20 @@ Test host: Apple M2, arm64, macOS 27.0, Java 25. Minecraft 26.2, Fabric Loader 0
 
 - Compilation, packaging, and all seven JUnit tests passed.
 - Native tests compiled and rendered the shipping spatial and temporal Metal shaders. Temporal history reset and depth disocclusion checks passed.
-- Isolated live-world smoke runs passed with vanilla rendering and Sodium 0.9.1. The final Sodium run enabled Metal API Validation and passed after 422 filtered frames, exercising camera rotation, temporal resolve, Off/Performance/Quality, F8 settings, and Shift+F8 toggle.
+- Isolated live-world smoke runs passed with vanilla rendering and Sodium 0.9.1. After the stationary-view correction, the Sodium run enabled Metal API Validation and passed after 419 filtered frames, exercising a stationary camera, camera rotation, temporal resolve, Off/Performance/Quality, F8 settings, and Shift+F8 toggle.
 - The redesigned settings screen was captured and visually reviewed.
 
 ## Synthetic results
 
+### Stationary-view correction
+
+The original resolve discarded all sky history and repeatedly rejected silhouette history as jitter changed the nearest depth sample. This exposed the sampling pattern even with a fixed camera. The correction accumulates sky with rotation-only reprojection, selects foreground depth across the cubic reconstruction footprint, and increases history retention below 0.1 pixel of camera motion.
+
+A 128-frame fixed-camera regression covers a flat-depth edge, a sky edge, and a foreground/background silhouette. Across the final 16 frames, worst-pixel brightness range fell from **0.0596 / 0.7085 / 0.7085** to **0.0200 / 0.0200 / 0.0200** respectively (0–1 color scale). Each scene must remain below 0.025. This measures synthetic flicker, not a guarantee that every modded scene is stable. The native regression also passes Metal API Validation. The smoke client now includes a stationary segment and verifies that history survives a full jitter cycle before rotating the camera.
+
 Temporal AA reduced mean squared error against an 8×8 coverage reference by **24.99%** on a moving diagonal plane after history warm-up. Performance reduced error by **81.51%** on the separate static silhouette test. These are different workloads and do not compare the two modes or measure perceived resolution in Minecraft.
 
-Median offscreen GPU times, milliseconds:
+Original-release median offscreen GPU times, milliseconds (before the stationary-view correction's wider depth sampling):
 
 | Resolution | Performance added cost over presentation | Quality resolve + copy | Quality history memory |
 | --- | ---: | ---: | ---: |

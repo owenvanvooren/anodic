@@ -15,7 +15,7 @@ public final class TemporalAA {
     private static MemorySegment resolvePipeline=MemorySegment.NULL,copyPipeline=MemorySegment.NULL;
     private static final MemorySegment[] history={MemorySegment.NULL,MemorySegment.NULL};
     private static final Msg BYTES=Msg.ofVoid("setFragmentBytes:length:atIndex:",ADDRESS,JAVA_LONG,JAVA_LONG);
-    private static final Matrix4f previousVP=new Matrix4f(),currentVP=new Matrix4f(),reprojection=new Matrix4f();
+    private static final Matrix4f previousVP=new Matrix4f(),currentVP=new Matrix4f(),reprojection=new Matrix4f(),skyReprojection=new Matrix4f();
     private static final Vector3f previousForward=new Vector3f(),currentForward=new Vector3f();
     private static final Vector3d previousPos=new Vector3d(),currentPos=new Vector3d();
     private static Object lastWorld,lastCameraType;
@@ -70,6 +70,8 @@ public final class TemporalAA {
         currentForward.set(camera.viewRotationMatrix.m02(),camera.viewRotationMatrix.m12(),camera.viewRotationMatrix.m22());
         if(previousForward.dot(currentForward)<.7f) valid=false;
         currentVP.set(projection).mul(camera.viewRotationMatrix);
+        // Sky follows camera rotation, but must not acquire translation parallax.
+        skyReprojection.set(previousVP).mul(new Matrix4f(currentVP).invert());
         reprojection.set(previousVP).translate((float)(currentPos.x-previousPos.x),(float)(currentPos.y-previousPos.y),(float)(currentPos.z-previousPos.z)).mul(new Matrix4f(currentVP).invert());
         if(!reprojection.isFinite()) {valid=false;reprojection.identity();}
         jitterX=(halton((frame%8)+1,2)-.5f)/width;
@@ -103,11 +105,13 @@ public final class TemporalAA {
             var e=cb.makeRenderCommandEncoder(history[index],new Vector4f(),MemorySegment.NULL,null,width,height);
             e.waitForFence(fence,MTLRenderStages.VertexAndFragment);e.setRenderPipelineState(resolvePipeline);
             e.setFragmentTexture(color,0);e.setFragmentTexture(depth,1);e.setFragmentTexture(history[1-index],2);
-            var data=MemorySegment.ofAddress(stack.nmalloc(16,80)).reinterpret(80);
+            var data=MemorySegment.ofAddress(stack.nmalloc(16,144)).reinterpret(144);
             float[] matrix=new float[16];reprojection.get(matrix);
             for(int i=0;i<16;i++)data.set(JAVA_FLOAT,i*4L,matrix[i]);
-            data.set(JAVA_FLOAT,64,jitterX);data.set(JAVA_FLOAT,68,jitterY);data.set(JAVA_FLOAT,72,.9f);data.set(JAVA_INT,76,valid?1:0);
-            BYTES.send(e.handle(),data,80L,0L);e.drawPrimitives(MTLPrimitiveType.Triangle,0,3,1,0);
+            skyReprojection.get(matrix);
+            for(int i=0;i<16;i++)data.set(JAVA_FLOAT,64+i*4L,matrix[i]);
+            data.set(JAVA_FLOAT,128,jitterX);data.set(JAVA_FLOAT,132,jitterY);data.set(JAVA_FLOAT,136,.9f);data.set(JAVA_INT,140,valid?1:0);
+            BYTES.send(e.handle(),data,144L,0L);e.drawPrimitives(MTLPrimitiveType.Triangle,0,3,1,0);
             e.updateFence(fence,MTLRenderStages.VertexAndFragment);e.endEncoding();
             var copy=cb.makeRenderCommandEncoder(color,new Vector4f(),MemorySegment.NULL,null,width,height);
             copy.waitForFence(fence,MTLRenderStages.VertexAndFragment);copy.setRenderPipelineState(copyPipeline);copy.setFragmentTexture(history[index],0);

@@ -35,7 +35,13 @@ public abstract class SmokeMixin {
         }
         if (mc.level==null || mc.player==null) return;
         anodic$worldTicks++;
-        if(mc.gui.screen()==null){mc.player.setYRot(mc.player.getYRot()+.15f);mc.player.setXRot(12f);}
+        if(mc.gui.screen()==null){if(anodic$worldTicks>70)mc.player.setYRot(mc.player.getYRot()+.15f);mc.player.setXRot(12f);}
+        if(anodic$worldTicks==70) {
+            try {
+                var frame=TemporalAA.class.getDeclaredField("frame");frame.setAccessible(true);
+                if(frame.getInt(null)<8)throw new IllegalStateException("Stationary temporal history keeps resetting");
+            } catch(ReflectiveOperationException e){throw new IllegalStateException(e);}
+        }
         if (anodic$worldTicks==100) {
             if (TemporalAA.resolvedFrames==0) throw new IllegalStateException("No filtered world frames");
             anodic$before=(MetalAA.filteredFrames+TemporalAA.resolvedFrames);

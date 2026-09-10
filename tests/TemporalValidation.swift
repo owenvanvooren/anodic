@@ -15,7 +15,7 @@ func texture(_ format:MTLPixelFormat,_ usage:MTLTextureUsage)->MTLTexture {
 }
 let color=texture(.rgba8Unorm,.shaderRead),depth=texture(.depth32Float,[.shaderRead,.renderTarget])
 let history=[texture(.rgba16Float,[.shaderRead,.renderTarget]),texture(.rgba16Float,[.shaderRead,.renderTarget])]
-struct Params {var reprojection:simd_float4x4;var jitter:SIMD2<Float>;var weight:Float;var valid:UInt32}
+struct Params {var reprojection:simd_float4x4;var skyReprojection:simd_float4x4=matrix_identity_float4x4;var jitter:SIMD2<Float>;var weight:Float;var valid:UInt32}
 func halton(_ index:Int,_ base:Int)->Float {var i=index,f:Float=1,r:Float=0;while i>0 {f/=Float(base);r+=f*Float(i%base);i/=base};return r}
 func scene(_ x:Float,_ y:Float)->Float {return x>70+y*0.37 ? 0.85:0.12}
 var initial=[UInt16](repeating:0,count:w*h*4)
@@ -61,6 +61,33 @@ let reset=encode(Params(reprojection:matrix_identity_float4x4,jitter:.zero,weigh
 for i in stride(from:0,to:reset.count,by:4){precondition(abs(Float(Float16(bitPattern:reset[i]))-180.0/255)<0.001,"Reset retained history")}
 let report:[String:Any]=["device":dev.name,"frames":48,"unfilteredMSE":plainError/Double(samples),"temporalMSE":taaError/Double(samples),"improvementPercent":100*(1-taaError/plainError),"disocclusion":"pass","reset":"pass","notes":"Synthetic translating plane, camera reprojection, 8-phase jitter. Not a Minecraft benchmark or object-motion test."]
 let data=try JSONSerialization.data(withJSONObject:report,options:[.prettyPrinted,.sortedKeys]);try data.write(to:URL(fileURLWithPath:out+"/temporal-report.json"));print(String(data:data,encoding:.utf8)!)
+// Fixed camera: changing sample positions must not make stationary edges crawl.
+// Include clear-depth sky and a foreground/background depth boundary.
+var stationaryResults:[[String:Any]]=[]
+for kind in ["surface", "sky", "silhouette"] {
+ var values=[[Float]]()
+ for frame in 0..<128 {
+  let jx=halton(frame%8+1,2)-0.5,jy=halton(frame%8+1,3)-0.5
+  for y in 0..<h {for x in 0..<w {
+   let v=scene(Float(x)+0.5-jx,Float(y)+0.5-jy)
+   for c in 0..<3 {source[(y*w+x)*4+c]=UInt8((v*255).rounded())}
+   depths[y*w+x]=kind == "sky" ? 0 : (kind == "silhouette" && v<0.5 ? 0.1:0.5)
+  }}
+  color.replace(region:MTLRegionMake2D(0,0,w,h),mipmapLevel:0,withBytes:&source,bytesPerRow:w*4)
+  depth.replace(region:MTLRegionMake2D(0,0,w,h),mipmapLevel:0,withBytes:&depths,bytesPerRow:w*4)
+  let output=encode(Params(reprojection:matrix_identity_float4x4,jitter:SIMD2(jx/Float(w),jy/Float(h)),weight:0.9,valid:frame==0 ? 0:1))
+  if frame>=112 {values.append(stride(from:0,to:output.count,by:4).map{Float(Float16(bitPattern:output[$0]))})}
+ }
+ var maxRange:Float=0
+ for y in 4..<h-4 {for x in 4..<w-4 {
+  let sequence=values.map{$0[y*w+x]};maxRange=max(maxRange,sequence.max()!-sequence.min()!)
+ }}
+ stationaryResults.append(["scene":kind,"maxTemporalRange":maxRange])
+ precondition(maxRange<0.025,"Stationary \(kind) flickers across jitter phases: \(maxRange)")
+}
+let stationaryData=try JSONSerialization.data(withJSONObject:stationaryResults,options:[.prettyPrinted,.sortedKeys])
+try stationaryData.write(to:URL(fileURLWithPath:out+"/stationary-report.json"));print(String(data:stationaryData,encoding:.utf8)!)
+if CommandLine.arguments.contains("--correctness-only") {exit(0)}
 // Measure both temporal resolve and copy-back; no CPU readback in timed passes.
 let copyDesc=MTLRenderPipelineDescriptor();copyDesc.vertexFunction=lib.makeFunction(name:"taa_vs");copyDesc.fragmentFunction=lib.makeFunction(name:"copy_fs");copyDesc.colorAttachments[0].pixelFormat = .rgba8Unorm
 let copyPipe=try dev.makeRenderPipelineState(descriptor:copyDesc)
