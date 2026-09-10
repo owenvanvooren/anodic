@@ -1,4 +1,4 @@
-# <img src="src/main/resources/assets/anodic/icon.png" alt="" width="40" height="40" align="absmiddle"> Anodic
+<img width="211" height="48" alt="Frame" src="https://github.com/user-attachments/assets/8341105d-40cc-4f6c-87a6-c5e7dfdbee00" />
 
 Native Metal antialiasing for Minecraft on Apple Silicon.
 
@@ -6,13 +6,16 @@ Native Metal antialiasing for Minecraft on Apple Silicon.
 - **Performance:** lightweight spatial AA inside Metallum's presentation pass. No history buffers; also filters the HUD.
 - **Off:** original rendering.
 
-Requires Minecraft **26.2**, Fabric Loader **0.19.3+**, Java **25+**, and [Metallum **0.0.23**](https://modrinth.com/mod/metallum-mc). Other Metallum versions are unsupported.
+<img width="1506" height="680" alt="quality comparison" src="https://github.com/user-attachments/assets/94b84b9b-99ba-44dc-8963-1ef8176ecda7" />
 
-Download [`anodic-0.jar`](https://github.com/owenvanvooren/anodic/releases/latest) into your instance's `mods` folder. Remove older Anodic or Clarity JARs first.
+
+Requires Minecraft **26.2**, Fabric Loader **0.19.3+**, Java **25+**, and [Metallum **0.0.23+**](https://modrinth.com/mod/metallum-mc). Other Metallum versions are unsupported.
+
+Download [`anodic-0.jar`](https://github.com/owenvanvooren/anodic/releases/latest) into your instance's `mods` folder. Remove older Anodic JARs first.
 
 Open settings with **F8** (sometimes **fn+F8**) or **Mod Menu → Anodic → Configure**. Rebind under **Controls → Key Binds → Anodic**. **Shift+F8** toggles AA while playing. Settings save locally.
 
-Quality is experimental: it uses camera motion and depth, without per-object motion vectors. Moving entities and translucent effects can trail or shimmer. Use Performance if Quality costs too much GPU time. See [validation](VALIDATION.md).
+Quality is experimental: it uses camera motion and depth, without per-object motion vectors. Moving entities and translucent effects can trail or shimmer. Objects may also jitter even if they are not moving. Use Performance if Quality costs too much GPU time. See [validation](VALIDATION.md).
 
 Build with Java 25: `./gradlew build`. Output: `build/libs/anodic-0.jar`.
 
