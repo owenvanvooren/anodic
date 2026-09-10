@@ -16,4 +16,6 @@ Quality is experimental: it uses camera motion and depth, without per-object mot
 
 Build with Java 25: `./gradlew build`. Output: `build/libs/anodic-0.jar`.
 
+vibe coded as heck (because there's no way i'm better at programming than Astra)
+
 MIT licensed.
