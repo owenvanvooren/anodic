@@ -1,0 +1,46 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.16.3'
+}
+version = '0'
+group = 'uno.owen'
+repositories { maven { url 'https://api.modrinth.com/maven' } }
+dependencies {
+    compileOnly 'maven.modrinth:modmenu:20.0.1'
+    minecraft 'com.mojang:minecraft:26.2'
+    implementation 'net.fabricmc:fabric-loader:0.19.3'
+    implementation 'maven.modrinth:metallum-mc:0.0.23'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+java { toolchain { languageVersion = JavaLanguageVersion.of(25) }; withSourcesJar() }
+tasks.withType(JavaCompile).configureEach { options.release = 25 }
+test { useJUnitPlatform() }
+processResources { exclude '**/.DS_Store'; inputs.property 'version', project.version; filesMatching('fabric.mod.json') { expand version: project.version } }
+jar { from('LICENSE') }
+
+// Isolated integration client. The smoke mod is never included in the release JAR.
+sourceSets {
+    smoke {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+loom {
+    mods {
+        anodic { sourceSet sourceSets.main }
+        anodic_smoke { sourceSet sourceSets.smoke }
+    }
+    runs {
+        smokeClient {
+            client()
+            source sourceSets.smoke
+            runDir 'build/smoke-run'
+            vmArg '-Danodic.smoke=true'
+        }
+    }
+}
+
+// Optional integration matrix: ./gradlew runSmokeClient -PsmokeSodium
+if (project.hasProperty('smokeSodium')) {
+    dependencies { smokeRuntimeOnly 'maven.modrinth:sodium:mc26.2-0.9.1-fabric' }
+}

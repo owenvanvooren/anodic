@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"anodic_smoke","version":"1","name":"Anodic integration test","environment":"client","mixins":["anodic-smoke.mixins.json"],"depends":{"anodic":"*"}}

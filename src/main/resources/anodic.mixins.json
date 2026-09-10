@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "package": "uno.owen.anodic.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "PresentMixin",
+    "MinecraftMixin",
+    "OptionsMixin",
+    "InputTickMixin",
+    "CommandAccess",
+    "MetalEncoderAccess",
+    "WorldMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

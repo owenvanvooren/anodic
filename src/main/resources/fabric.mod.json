@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "anodic",
+  "version": "${version}",
+  "name": "Anodic",
+  "description": "Low-overhead native Metal antialiasing for Metallum.",
+  "authors": [
+    "Owen Van Vooren"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "uno.owen.anodic.Anodic"
+    ],
+    "modmenu": [
+      "uno.owen.anodic.AnodicModMenu"
+    ]
+  },
+  "mixins": [
+    "anodic.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "26.2",
+    "java": ">=25",
+    "metallum": "0.0.23"
+  },
+  "breaks": {
+    "clarity": "*"
+  },
+  "icon": "assets/anodic/icon.png"
+}
