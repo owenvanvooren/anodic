@@ -1,4 +1,5 @@
-<img width="211" height="48" alt="Frame" src="https://github.com/user-attachments/assets/8341105d-40cc-4f6c-87a6-c5e7dfdbee00" />
+<img width="211" height="44" alt="Frame" src="https://github.com/user-attachments/assets/442bccd0-6116-46ee-89bf-8403133471ed" />
+
 
 Native Metal antialiasing for Minecraft on Apple Silicon.
 
@@ -6,8 +7,7 @@ Native Metal antialiasing for Minecraft on Apple Silicon.
 - **Performance:** lightweight spatial AA inside Metallum's presentation pass. No history buffers; also filters the HUD.
 - **Off:** original rendering.
 
-<img width="1506" height="680" alt="quality comparison" src="https://github.com/user-attachments/assets/94b84b9b-99ba-44dc-8963-1ef8176ecda7" />
-
+<img width="1506" height="680" alt="quality comparison" src="https://github.com/user-attachments/assets/18078021-9e10-4a76-9ff9-d616d18fa4e9" />
 
 Requires Minecraft **26.2**, Fabric Loader **0.19.3+**, Java **25+**, and [Metallum **0.0.23+**](https://modrinth.com/mod/metallum-mc). Other Metallum versions are unsupported.
 
